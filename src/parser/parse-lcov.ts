@@ -93,17 +93,18 @@ function splitLine(line: string): Line | undefined {
 }
 
 function makeCoverageItem(total: number, covered: number): CoverageItem {
-  return { total, covered, skipped: total - covered, pct: covered / total * 100 }
+
+  return { total, covered: total === 0 ? 0 : covered, skipped: total === 0 ? 0 : total - covered, pct: total === 0 ? 0 : (covered / total * 100) }
 }
 
 function convertToCollection(lines: Line[]): CoverageCollection {
   let file: string | undefined
-  let numFunctions: number | undefined
-  let numFunctionsHit: number | undefined
-  let numBranches: number | undefined
-  let numBranchesHit: number | undefined
-  let numLines: number | undefined
-  let numLinesHit: number | undefined
+  let numFunctions: number = 0
+  let numFunctionsHit: number = 0
+  let numBranches: number = 0
+  let numBranchesHit: number = 0
+  let numLines: number = 0
+  let numLinesHit: number = 0
 
   const collection: CoverageCollection = {}
 
@@ -132,16 +133,13 @@ function convertToCollection(lines: Line[]): CoverageCollection {
         break
       case LcovToken.END_OF_RECORD:
         if (
-          file === undefined ||
-          numFunctions === undefined ||
-          numFunctionsHit === undefined ||
-          numBranches === undefined ||
-          numBranchesHit === undefined ||
-          numLines === undefined ||
-          numLinesHit === undefined
+          file === undefined
         ) {
           throw Error()
         }
+
+        
+
 
         collection[file] = {
           lines: makeCoverageItem(numLines, numLinesHit),
@@ -150,12 +148,12 @@ function convertToCollection(lines: Line[]): CoverageCollection {
           statements: makeCoverageItem(numLines, numLinesHit),
         }
         file = undefined
-        numFunctions = undefined
-        numFunctionsHit = undefined
-        numBranches = undefined
-        numBranchesHit = undefined
-        numLines = undefined
-        numLinesHit = undefined
+        numFunctions = 1
+        numFunctionsHit = 0
+        numBranches = 1
+        numBranchesHit = 0
+        numLines = 1
+        numLinesHit = 0
         break
     }
   })

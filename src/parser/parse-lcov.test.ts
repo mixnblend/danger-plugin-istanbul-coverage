@@ -1,15 +1,15 @@
-import FilesystemService from "../filesystem.service"
-import { parseLcov } from "./parse-lcov"
+import FilesystemService from "../filesystem.service";
+import { parseLcov } from "./parse-lcov";
 
-jest.mock("../filesystem.service")
+jest.mock("../filesystem.service");
 
 function setupCoverageFile(coverage: string | undefined) {
-  ;(FilesystemService as any).mockImplementation(() => {
+  (FilesystemService as any).mockImplementation(() => {
     return {
-      exists: p => coverage !== undefined,
-      read: p => (coverage !== undefined ? coverage : undefined),
-    }
-  })
+      exists: (p) => coverage !== undefined,
+      read: (p) => (coverage !== undefined ? coverage : undefined),
+    };
+  });
 }
 
 describe("parseLcov", () => {
@@ -32,8 +32,8 @@ BRH: 4
 LH: 15
 LF: 20
 end_of_record`
-    )
-    const output = parseLcov("randomPath")
+    );
+    const output = parseLcov("randomPath");
     expect(output).toEqual({
       "some/file.ts": {
         lines: { total: 20, covered: 15, skipped: 5, pct: 75 },
@@ -41,8 +41,8 @@ end_of_record`
         statements: { total: 20, covered: 15, skipped: 5, pct: 75 },
         branches: { total: 8, covered: 4, skipped: 4, pct: 50 },
       },
-    })
-  })
+    });
+  });
 
   it("outputs an empty collection if there is no end_of_record", () => {
     setupCoverageFile(
@@ -56,12 +56,29 @@ BRF: 8
 BRH: 4
 LH: 15
 LF: 20`
-    )
-    const output = parseLcov("randomPath")
-    expect(output).toEqual({})
-  })
+    );
+    const output = parseLcov("randomPath");
+    expect(output).toEqual({});
+  });
 
-  it("fails to pass if FNF (number of functions) is missing", () => {
+  it("handles missing function, branch and line information gracefully", () => {
+    setupCoverageFile(
+      `TN:
+SF: some/file.ts
+end_of_record`
+    );
+    const output = parseLcov("randomPath");
+    expect(output).toEqual({
+      "some/file.ts": {
+        lines: { total: 0, covered: 0, skipped: 0, pct: 0 },
+        functions: { total: 0, covered: 0, skipped: 0, pct: 0 },
+        branches: { total: 0, covered: 0, skipped: 0, pct: 0 },
+        statements: { total: 0, covered: 0, skipped: 0, pct: 0 },
+      },
+    });
+  });
+
+  it("still passes if FNF records are missing but sets the coverage to 0 for functions", () => {
     setupCoverageFile(
       `TN:
 SF: some/file.ts
@@ -73,9 +90,17 @@ BRH: 4
 LH: 15
 LF: 20
 end_of_record`
-    )
-    expect(() => parseLcov("randomPath")).toThrow()
-  })
+    );
+    const output = parseLcov("randomPath");
+    expect(output).toEqual({
+      "some/file.ts": {
+        lines: { total: 20, covered: 15, skipped: 5, pct: 75 },
+        functions: { total: 0, covered: 0, skipped: 0, pct: 0 },
+        branches: { total: 8, covered: 4, skipped: 4, pct: 50 },
+        statements: { total: 20, covered: 15, skipped: 5, pct: 75 },
+      },
+    });
+  });
 
   it("can parse a correctly formatted lcov file with two records", () => {
     setupCoverageFile(
@@ -102,8 +127,8 @@ BRH: 4
 LH: 15
 LF: 20
 end_of_record`
-    )
-    const output = parseLcov("randomPath")
+    );
+    const output = parseLcov("randomPath");
     expect(output).toEqual({
       "some/file1.ts": {
         lines: { total: 20, covered: 15, skipped: 5, pct: 75 },
@@ -117,11 +142,11 @@ end_of_record`
         statements: { total: 20, covered: 15, skipped: 5, pct: 75 },
         branches: { total: 8, covered: 4, skipped: 4, pct: 50 },
       },
-    })
-  })
+    });
+  });
 
   it("throws an error when the file doesn't exist", () => {
-    setupCoverageFile(undefined)
-    expect(() => parseLcov("randomPath")).toThrow()
-  })
-})
+    setupCoverageFile(undefined);
+    expect(() => parseLcov("randomPath")).toThrow();
+  });
+});
